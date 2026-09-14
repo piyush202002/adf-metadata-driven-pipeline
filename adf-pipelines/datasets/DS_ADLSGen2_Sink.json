@@ -1,0 +1,25 @@
+{
+  "name": "DS_ADLSGen2_Sink",
+  "properties": {
+    "type": "Parquet",
+    "linkedServiceName": {
+      "referenceName": "LS_ADLSGen2",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "ZoneName": { "type": "string" },
+      "TableName": { "type": "string" }
+    },
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileSystem": "raw",
+        "folderPath": {
+          "value": "@concat(dataset().ZoneName, '/', dataset().TableName)",
+          "type": "Expression"
+        }
+      },
+      "compressionCodec": "snappy"
+    }
+  }
+}

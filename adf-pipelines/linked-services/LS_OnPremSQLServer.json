@@ -1,0 +1,14 @@
+{
+  "name": "LS_OnPremSQLServer",
+  "properties": {
+    "type": "SqlServer",
+    "typeProperties": {
+      "connectionString": "Server=<onprem-sql-server>;Database=<database-name>;",
+      "userName": "<sql-username>"
+    },
+    "connectVia": {
+      "referenceName": "SelfHostedIR",
+      "type": "IntegrationRuntimeReference"
+    }
+  }
+}

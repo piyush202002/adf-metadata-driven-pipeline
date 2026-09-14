@@ -1,0 +1,72 @@
+{
+  "name": "PL_MetadataDrivenIngestion",
+  "properties": {
+    "activities": [
+      {
+        "name": "Lookup_ControlTable",
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": "SELECT * FROM dbo.control_table WHERE is_active = 1"
+          },
+          "dataset": {
+            "referenceName": "DS_ControlTable",
+            "type": "DatasetReference"
+          },
+          "firstRowOnly": false
+        }
+      },
+      {
+        "name": "ForEach_SourceTable",
+        "type": "ForEach",
+        "dependsOn": [
+          { "activity": "Lookup_ControlTable", "dependencyConditions": ["Succeeded"] }
+        ],
+        "typeProperties": {
+          "items": {
+            "value": "@activity('Lookup_ControlTable').output.value",
+            "type": "Expression"
+          },
+          "isSequential": false,
+          "activities": [
+            {
+              "name": "Copy_OnPremToADLS",
+              "type": "Copy",
+              "typeProperties": {
+                "source": { "type": "SqlServerSource" },
+                "sink": { "type": "ParquetSink" }
+              },
+              "inputs": [{ "referenceName": "DS_OnPremSQL_Source", "type": "DatasetReference" }],
+              "outputs": [{ "referenceName": "DS_ADLSGen2_Sink", "type": "DatasetReference" }]
+            },
+            {
+              "name": "Notebook_BronzeToSilverGold",
+              "type": "DatabricksNotebook",
+              "dependsOn": [
+                { "activity": "Copy_OnPremToADLS", "dependencyConditions": ["Succeeded"] }
+              ],
+              "typeProperties": {
+                "notebookPath": "/Shared/bronze_to_silver_gold",
+                "baseParameters": {
+                  "table_name": "@item().source_table_name",
+                  "load_type": "@item().load_type"
+                }
+              }
+            },
+            {
+              "name": "SP_UpdateLastIngestionDate",
+              "type": "SqlServerStoredProcedure",
+              "dependsOn": [
+                { "activity": "Notebook_BronzeToSilverGold", "dependencyConditions": ["Succeeded"] }
+              ],
+              "typeProperties": {
+                "storedProcedureName": "dbo.usp_update_last_ingestion_date"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
